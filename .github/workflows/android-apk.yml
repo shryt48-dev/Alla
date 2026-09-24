@@ -1,0 +1,44 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths: [ "tasneem-build.zip" ]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Unzip project
+        run: |
+          unzip -o tasneem-build.zip
+          mkdir -p www
+          cp index.html manifest.webmanifest sw.js www/
+          cp -r icons www/
+
+      - run: npm install
+      - run: npx cap add android
+      - run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tasneem-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
